@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]>      <html class="no-js"> <!--<![endif]-->
+<html>
+    <head>
+        <!-- This cool vanilla UI was made with <3 by Bentzy, on his free time, and is his property, not anyone else, you are free to use it tho :) -->
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>HAR Editor</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            body{ font-family: Arial, Helvetica, sans-serif; }
+
+            #file_holder { border: 5px dashed #ccc; width: calc(100vw - 120px); height: calc(100vh - 200px); margin: 20px; border-radius: 25px; padding: 20px;}
+            #file_holder.hover { border: 5px dashed #333; }
+
+            #main_stuff { border: 2px solid #777; border-radius: 5px; display: grid; grid-template-columns: min-content auto auto auto auto; max-height: calc(100vh - 150px);}
+            #main_stuff .right_content { background: #eee; grid-column-start: 2; grid-column-end: 6; padding: 10px; max-height: calc(100vh - 150px); padding: 10px; }
+            #main_stuff .left_panel { display: flex; flex-direction: column; align-content: center; max-height: calc(100vh - 150px); overflow-y: scroll}
+            .card { background: #ddd; padding: 50px 8px; margin: 5px; border-radius: 3px; position: relative;
+                 text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 50vw; min-width:30vw; border-right: 8px solid #000 }
+            .card:hover { background: #eee; cursor: pointer }
+            .card.selected { background: #c9deef !important }
+            .card.selected:hover { background: #d3e3f0 !important }
+            .hidden_element { display: none !important }
+
+            .section { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #bbb}
+            .subsection_header { font-weight: bold; margin: 5px auto; font-size: 20px }
+
+            .badge_area { position: absolute; display: flex; top: 5px; left: 5px; }
+            .marker_badge { background: #92e392; padding: 5px 8px; border-radius: 2px; font-size: 13px; margin-right: 8px; }
+            .transaction_badge { background: #c9a3ff; padding: 5px 8px; border-radius: 2px; font-size: 13px; }
+
+            .url_variable_badge {background: #fffb90; padding: 5px 8px; border-radius: 2px; font-size: 13px; margin: 3px; max-height: 16px; }
+            .url_variable_badge:hover { background: #ff9090; cursor: pointer; }
+
+            .url_variable { color: #555; font-style: italic }
+
+            .api_method { font-size: 18px; font-weight: bold; margin-right: 6px;}
+            .method_get .api_method{ color: #0a9b0a }
+            .method_post .api_method{ color: #d91bee }
+            .method_put .api_method{ color: #0a9b99 }
+            .method_delete .api_method{ color: #cd0c0c }
+            .method_options .api_method{ color: #999999 }
+            .method_get.card{ border-right: 8px solid #0a9b0a }
+            .method_post.card{ border-right: 8px solid #d91bee }
+            .method_put.card{ border-right: 8px solid #0a9b99 }
+            .method_delete.card{ border-right: 8px solid #cd0c0c }
+            .method_options.card{ border-right: 8px solid #999999 }
+
+        </style>
+    </head>
+    <body>
+        <!--[if lt IE 7]>
+            <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="#">upgrade your browser</a> to improve your experience.</p>
+        <![endif]-->
+
+        <h1>HAR Editor</h1>
+        
+        <div id="file_holder"> 
+            <div class="inner_content">Drop a .HAR file inside me ;)</div> 
+        </div> 
+
+
+        <div id="main_stuff" class="hidden_element">
+            <div class="left_panel">
+            </div>
+            <div class="right_content">
+                <div class="section">
+                    <div class="subsection_header">Base URL</div> <br>
+                    <input type="text" id="base_url" name="base_url" placeholder="Base URL">
+                    <input type="button" value="Apply" id="base_url_apply_btn" onclick="apply_base_url()"> <br>
+                    <input type="checkbox" id="show_only_base_url_cbx" onclick="click_show_only_base_url(this.checked)"> <label for="show_only_base_url_cbx">Show Only Base URL api calls</label>
+                </div>
+                <div class="section" style="display: grid; grid-template-columns: auto max-content;">
+                    <div>
+                        <div class="subsection_header">URL Variables</div> <br>
+                        <input type="text" id="url_var_text" name="url_var_text" placeholder="Text in URL">
+                        <input type="text" id="url_var_name" name="url_var_name" placeholder="Variable Name">
+                        <input type="button" value="Add" id="url_var_add_btn" onclick="add_url_var()">
+                    </div>
+                    <div id="section_split_url_vars" style="display: flex; flex-wrap: wrap; max-width: 33vw; flex-direction: row-reverse;">
+                        <div class="url_variable_badge"><b>league_id:</b> 1</div>
+                        <div class="url_variable_badge"><b>company_id:</b> 6223</div>
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="subsection_header">Add marker to selections</div> <br>
+                    <input type="text" id="marker_name" name="marker_name" placeholder="Marker Name">
+                    <input type="button" value="Add Marker" id="marker_btn" onclick="add_markers_to_selections()">
+                </div>
+                <div class="section">
+                    <div class="subsection_header">Chain selections as a transaction</div> <br>
+                    <input type="text" id="transaction_name" name="transaction_name" placeholder="Transaction Name">
+                    <input type="button" value="Chain" id="transaction_chain_btn" onclick="add_transaction_chain_to_selections()">
+                </div>
+                <div class="section">
+                    <div class="subsection_header">Removals</div> <br>
+                    <input type="button" value="Remove Markers at Selections" id="remove_markers_btn" onclick="delete_markers_at_selections()">
+                    <input type="button" value="Remove Transaction Chain at Selections" id="remove_transaction_btn" onclick="delete_transaction_chain_at_selections()">
+
+                </div>
+
+                <div class="section">
+                    <div class="subsection_header">Export</div> <br>
+                    <input type="button" value="Export HAR File" id="export_har_btn" onclick="">
+                    <input type="button" value="Export K6 Script" id="export_k6_btn" onclick="">
+
+                </div>
+            </div>
+        </div>
+
+        <script>
+            let config = {"base_url": '', "show_only_base_url_calls": false, "url_replacers": []}
+            let har_data = {}
+            let har_data_by_id = {}
+
+            var holder = document.getElementById('file_holder')
+
+            holder.ondragover = function() {
+                this.className = 'hover';
+                return false;
+            };
+            holder.ondrop = function(e) {
+                e.preventDefault();
+
+                var file = e.dataTransfer.files[0],
+                    reader = new FileReader();
+                reader.onload = function(event) {
+                    try{
+                        holder.innerHTML = "Parsing..."
+                        holder.className = "hidden_element"
+                        har_data = JSON.parse(event.target.result)
+                        har_data_by_id = har_data.log.entries.reduce((obj, item) => (obj[item.startedDateTime] = item, obj) ,{});
+
+                        render_har_data()
+                    }
+                    catch(e){
+                        console.log(e)
+                        holder.innerHTML = "Failed to parse file"
+                        holder.className = ""
+                    }
+                };
+                reader.readAsText(file);
+                return false;
+            };
+
+            // Misc
+            function get_selected_card_ids(){
+                return [...document.querySelectorAll('.card.selected')].map((card) => {return card.getAttribute('data_identifier')})
+            }
+
+            // Clicks
+            function card_click(e_or_child){
+                if(e_or_child){
+                    var target = e_or_child.target.classList.contains('card') ? e_or_child.target : e_or_child.target.parentElement
+                    target.classList.toggle('selected')
+                }
+            }
+
+            function url_var_badge_click(e_or_child){
+                if(e_or_child){
+                    var target = e_or_child.target.tagName === "DIV" ? e_or_child.target : e_or_child.target.parentElement
+                    const name = target.getAttribute('data_id_name')
+                    const text = target.getAttribute('data_id_text')
+                    config.url_replacers = config.url_replacers.filter((d) => {return !(d.name == name && d.text == text)})
+                    render_har_data()
+                }
+            }
+
+            function add_markers_to_selections(){
+                const marker_name = document.getElementById('marker_name')
+                get_selected_card_ids().forEach((card_id) => {
+                    har_data_by_id[card_id].marker = marker_name.value
+                })
+                marker_name.value = ''
+                render_har_data()
+            }
+
+            function delete_markers_at_selections(){
+                get_selected_card_ids().forEach((card_id) => {
+                    delete har_data_by_id[card_id].marker
+                })
+                render_har_data()
+            }
+            
+            function add_transaction_chain_to_selections(){
+                const transaction_name = document.getElementById('transaction_name')
+                get_selected_card_ids().forEach((card_id) => {
+                    har_data_by_id[card_id].transaction = transaction_name.value
+                })
+                transaction_name.value = ''
+                render_har_data()
+            }
+
+            function delete_transaction_chain_at_selections(){
+                get_selected_card_ids().forEach((card_id) => {
+                    delete har_data_by_id[card_id].transaction
+                })
+                render_har_data()
+            }
+
+            function apply_base_url(){
+                config.base_url = document.getElementById('base_url').value
+                render_har_data()
+            }
+
+            function click_show_only_base_url(toggle_state){
+                config.show_only_base_url_calls = toggle_state
+                render_har_data()
+            }
+
+            function add_url_var(){
+                const var_text = document.getElementById('url_var_text')
+                const var_name = document.getElementById('url_var_name')
+                config.url_replacers.push({'text': var_text.value, 'name': var_name.value})
+                var_text.value = ''
+                var_name.value = ''
+                render_har_data()
+            }
+
+            // Rendering
+            function render_har_data(){
+                var main_stuff = document.getElementById('main_stuff')
+                var left_panel = document.querySelector('#main_stuff .left_panel')
+                let success = false
+
+                var left_panel_children_arr = [...left_panel.children]
+                left_panel_children_arr.forEach((child) => {child.remove()})
+
+                har_data.log.entries.forEach( (raw_entry) => {
+                    let entry = har_data_by_id[raw_entry.startedDateTime]
+                    if(!config.show_only_base_url_calls || entry.request.url.startsWith(config.base_url)){
+                        let temp_element = document.createElement('div')
+                        temp_element.className = "card method_" + entry.request.method.toLowerCase()
+                        let card_html = config.base_url ? entry.request.url.replace(config.base_url, '<span class="url_variable">{base_url}</span>') : entry.request.url
+                        config.url_replacers.forEach((d) => {
+                            card_html = card_html.replace(d.text, '<span class="url_variable">{' + d.name + "}</span>")
+                        })
+                        temp_element.innerHTML = "<div class='api_method'>" + entry.request.method + "</div>" + card_html
+                        temp_element.setAttribute('data_identifier', entry.startedDateTime)
+                        temp_element.onclick = card_click
+                        left_panel.append(temp_element)
+                        
+                        badge_area_element = document.createElement('div')
+                        badge_area_element.className = 'badge_area'
+                        temp_element.append(badge_area_element)
+                        
+                        if(entry.marker){
+                            let temp_marker_badge_element = document.createElement('div')
+                            temp_marker_badge_element.className = 'marker_badge'
+                            temp_marker_badge_element.innerHTML = "<strong>Marker: </strong>" + entry.marker
+                            badge_area_element.append(temp_marker_badge_element)
+                        }
+                        if(entry.transaction){
+                            let temp_transaction_badge_element = document.createElement('div')
+                            temp_transaction_badge_element.className = 'transaction_badge'
+                            temp_transaction_badge_element.innerHTML = "<strong>Transaction: </strong>" + entry.transaction
+                            badge_area_element.append(temp_transaction_badge_element)
+                        }
+                    }
+                })
+
+                var section_split_url_vars = document.getElementById('section_split_url_vars')
+                var url_vars_badges = [...section_split_url_vars.children]
+                url_vars_badges.forEach((child) => {child.remove()}) 
+                config.url_replacers.forEach((d) => {
+                    let temp_url_var_badge_element = document.createElement('div')
+                    temp_url_var_badge_element.className = 'url_variable_badge'
+                    temp_url_var_badge_element.innerHTML = "<strong onclick='url_var_badge_click()'>" + d.name + ":</strong> " + d.text
+                    temp_url_var_badge_element.setAttribute('data_id_name', d.name)
+                    temp_url_var_badge_element.setAttribute('data_id_text', d.text)
+                    temp_url_var_badge_element.onclick = url_var_badge_click
+                    section_split_url_vars.append(temp_url_var_badge_element)
+                })
+
+                success = true
+                if(success){main_stuff.className = ''}
+                return success
+            }
+
+
+        </script>
+    </body>
+</html>
