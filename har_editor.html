@@ -51,6 +51,8 @@
             .method_delete.card{ border-right: 8px solid #cd0c0c }
             .method_options.card{ border-right: 8px solid #999999 }
 
+            #notifications_area{ position: fixed; top: 10px; right: 10px; display: flex; flex-direction: column }
+            .notification{ padding: 4px 8px; background: #a2cebc; font-size: 22px; margin: 5px; border: 1px solid #678578; border-radius: 2px; }
         </style>
     </head>
     <body>
@@ -64,6 +66,7 @@
             <div class="inner_content">Drop a .HAR file inside me ;)</div> 
         </div> 
 
+        <div id="notifications_area"></div>
 
         <div id="main_stuff" class="hidden_element">
             <div class="left_panel">
@@ -106,8 +109,8 @@
 
                 <div class="section">
                     <div class="subsection_header">Export</div> <br>
-                    <input type="button" value="Export HAR File" id="export_har_btn" onclick="">
-                    <input type="button" value="Export K6 Script" id="export_k6_btn" onclick="">
+                    <input type="button" value="Export HAR File" id="export_har_btn" onclick="click_export_har()">
+                    <input type="button" disabled value="Export K6 Script" id="export_k6_btn" onclick="">
 
                 </div>
             </div>
@@ -151,6 +154,17 @@
             // Misc
             function get_selected_card_ids(){
                 return [...document.querySelectorAll('.card.selected')].map((card) => {return card.getAttribute('data_identifier')})
+            }
+
+            function notify(message){
+                let notification = document.createElement('div')
+                notification.className = "notification"
+                notification.innerText = message
+                let notifications_area = document.getElementById('notifications_area')
+                notifications_area.append(notification)
+                setTimeout(() => {
+                    notification.remove()
+                }, 3000)
             }
 
             // Clicks
@@ -220,6 +234,51 @@
                 var_text.value = ''
                 var_name.value = ''
                 render_har_data()
+            }
+
+            function click_export_har(){
+                copy_to_clipboard(get_shrunk_har())
+                notify('Shrunk HAR copied to clipboard')
+            }
+
+            // Export
+            function copy_to_clipboard(text_to_copy) {
+              var TempText = document.createElement("input");
+              TempText.value = text_to_copy;
+              document.body.appendChild(TempText);
+              TempText.select();
+
+              document.execCommand("copy");
+              document.body.removeChild(TempText);
+            }
+            function get_shrunk_har(){
+                let har_export = {'log': {'entries': []}}
+                for (const [key, value] of Object.entries(har_data_by_id)) {
+                    let _url = value.request.url
+                    config.url_replacers.forEach((itm) => {
+                        _url = _url.replace('/' + itm.text, "/%" + itm.name + "%")
+                    })
+                    let temp_entry = {
+                        "request": {
+                            'method': value.request.method,
+                            'url': _url
+                        }
+                    }
+                    if(value.request.postData){
+                        temp_entry.request.postData = value.request.postData
+                    }
+                    if(value.marker){
+                        temp_entry.marker = value.marker
+                    }
+                    if(value.transaction){
+                        temp_entry.transaction = value.transaction
+                    }
+
+                  har_export.log.entries.push(temp_entry)
+                }
+                let har_export_str = JSON.stringify(har_export)
+                har_export_str = har_export_str.replaceAll('","url":"' + config.base_url, '", "url": BASE_URL + "')
+                return har_export_str
             }
 
             // Rendering
